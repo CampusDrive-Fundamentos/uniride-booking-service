@@ -27,7 +27,7 @@ public class BookingQueryServiceImpl implements BookingQueryService {
 
     @Override
     public Optional<Booking> handle(GetActiveBookingByPassengerIdQuery query) {
-        return bookingRepository.findActiveBookingByPassengerId(query.passengerId());
+        return bookingRepository.findActiveBookingByPassengerId(query.passengerId()).stream().findFirst();
     }
 
     @Override
