@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    @Query("SELECT b FROM Booking b JOIN b.passengers p WHERE p.studentId = :userId AND b.status <> 'CANCELLED'")
-    Optional<Booking> findActiveBookingByPassengerId(@Param("userId") Long userId);
+    @Query("SELECT b FROM Booking b JOIN b.passengers p WHERE p.studentId = :userId AND b.status <> 'CANCELLED' ORDER BY b.id DESC")
+    List<Booking> findActiveBookingByPassengerId(@Param("userId") Long userId);
     List<Booking> findByRouteIdInAndStatus(List<Long> routeIds, BookingStatus status);
 }
