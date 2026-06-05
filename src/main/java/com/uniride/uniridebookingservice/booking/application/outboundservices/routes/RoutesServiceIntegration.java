@@ -5,6 +5,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +16,7 @@ public class RoutesServiceIntegration {
     @Value("${routes.service.url}")
     private String routesUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = new RestTemplate(new JdkClientHttpRequestFactory());
 
     private HttpHeaders createHeaders(String token) {
         HttpHeaders headers = new HttpHeaders();
