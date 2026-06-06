@@ -37,7 +37,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/actuator/**"
                         ).permitAll()
 
                         // PUERTA CERRADA: Toda la lógica de reservas requiere usuario logueado
