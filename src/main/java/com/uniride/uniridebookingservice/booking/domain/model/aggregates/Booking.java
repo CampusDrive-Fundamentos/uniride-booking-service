@@ -44,6 +44,7 @@ public class Booking extends AuditableModel {
         this.routeId = routeId;
         this.status = BookingStatus.OPEN;
         this.passengers.add(new Passenger(leaderId, PassengerRole.LEADER));
+        this.securityPin = String.format("%04d", new Random().nextInt(10000));
     }
 
     public boolean addFollower(Long studentId) {
