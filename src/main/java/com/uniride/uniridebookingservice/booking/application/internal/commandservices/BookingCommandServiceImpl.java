@@ -31,13 +31,18 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     @Override
     public Optional<Booking> handle(JoinBookingCommand command) {
         return bookingRepository.findById(command.bookingId()).map(booking -> {
-            if (booking.addFollower(command.studentId())) {
+
+            // 1. OBTENEMOS LA DISTANCIA ANTES DE AÑADIR AL PASAJERO
+            Double exactDistance = routesIntegration.getDistanceToWaypoint(booking.getRouteId(), command.lat(), command.lng(), command.token());
+
+            // 2. AÑADIMOS AL SEGUIDOR (Asegúrate que tu método addFollower en Booking.java reciba y guarde esta distancia en la entidad Passenger)
+            if (booking.addFollower(command.studentId(), exactDistance)) {
                 booking = bookingRepository.save(booking);
 
-                // 1. Llamamos a Routes para que añada la parada al mapa
+                // 3. Llamamos a Routes para que añada la parada al mapa
                 routesIntegration.addWaypoint(booking.getRouteId(), command.lat(), command.lng(), command.address(), command.token());
 
-                // 2. Si se llenó (4 pasajeros), ocultamos el mapa
+                // 4. Si se llenó (4 pasajeros), ocultamos el mapa
                 if (booking.getStatus() == BookingStatus.FULL) {
                     routesIntegration.updateVisibility(booking.getRouteId(), "HIDDEN", command.token());
                 }
