@@ -48,7 +48,7 @@ public class RoutesServiceIntegration {
         String url = routesUrl + "/" + routeId + "/waypoints?lat=" + lat + "&lng=" + lng;
         restTemplate.exchange(url, HttpMethod.DELETE, new HttpEntity<>(createHeaders(token)), Void.class);
     }
-    
+
     public Double getDistanceToWaypoint(Long routeId, Double lat, Double lng, String token) {
         String url = routesUrl + "/" + routeId + "/distance?lat=" + lat + "&lng=" + lng;
         try {

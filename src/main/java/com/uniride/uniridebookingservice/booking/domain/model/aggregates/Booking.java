@@ -47,11 +47,14 @@ public class Booking extends AuditableModel {
         this.securityPin = String.format("%04d", new Random().nextInt(10000));
     }
 
-    public boolean addFollower(Long studentId) {
+    // AQUI ESTA EL CAMBIO: Recibimos Double distance
+    public boolean addFollower(Long studentId, Double distance) {
         if (this.passengers.size() >= 4) return false;
         if (this.passengers.stream().anyMatch(p -> p.getStudentId().equals(studentId))) return false;
 
-        this.passengers.add(new Passenger(studentId, PassengerRole.FOLLOWER));
+        // AQUI ESTA EL CAMBIO: Pasamos la distancia al crear al pasajero seguidor
+        this.passengers.add(new Passenger(studentId, PassengerRole.FOLLOWER, distance));
+
         if (this.passengers.size() == 4) this.status = BookingStatus.FULL;
         return true;
     }
