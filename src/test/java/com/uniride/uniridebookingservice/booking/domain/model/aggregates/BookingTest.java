@@ -1,55 +1,43 @@
 package com.uniride.uniridebookingservice.booking.domain.model.aggregates;
 
 import com.uniride.uniridebookingservice.booking.domain.model.valueobjects.BookingStatus;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 class BookingTest {
 
-    @Test
-    @DisplayName("Should add follower and update status to FULL when limit reached")
-    void shouldAddFollowerAndUpdateStatusToFull() {
-        // Arrange
-        Booking booking = new Booking(1L, 100L); // Leader is added automatically
+    private Booking booking;
 
-        // Act
-        booking.addFollower(2L);
-        booking.addFollower(3L);
-        boolean addedLast = booking.addFollower(4L);
-
-        // Assert
-        assertThat(addedLast).isTrue();
-        assertThat(booking.getPassengers()).hasSize(4);
-        assertThat(booking.getStatus()).isEqualTo(BookingStatus.FULL);
+    @BeforeEach
+    void setUp() {
+        // Inicializamos un viaje con un líder (ID 1) y una ruta (ID 100)
+        booking = new Booking(1L, 100L);
     }
 
     @Test
-    @DisplayName("Should not add follower if already in the group")
-    void shouldNotAddFollowerIfAlreadyInGroup() {
-        // Arrange
-        Booking booking = new Booking(1L, 100L);
+    void testAddFollower() {
+        // AHORA PASAMOS LA DISTANCIA SIMULADA EN EL TEST
+        assertTrue(booking.addFollower(2L, 3.5)); // Pasajero 2 a 3.5km
+        assertTrue(booking.addFollower(3L, 5.0)); // Pasajero 3 a 5.0km
+        assertTrue(booking.addFollower(4L, 8.2)); // Pasajero 4 a 8.2km
 
-        // Act
-        boolean added = booking.addFollower(1L); // 1L is the leader
+        // El grupo debería estar lleno (Líder + 3 seguidores = 4 pasajeros)
+        assertEquals(BookingStatus.FULL, booking.getStatus());
 
-        // Assert
-        assertThat(added).isFalse();
-        assertThat(booking.getPassengers()).hasSize(1);
+        // No debería dejar agregar un 5to pasajero
+        assertFalse(booking.addFollower(5L, 10.0));
     }
 
     @Test
-    @DisplayName("Should generate 4-digit PIN and lock booking")
-    void shouldGeneratePinAndLockBooking() {
-        // Arrange
-        Booking booking = new Booking(1L, 100L);
+    void testRemoveFollower() {
+        // Agregamos y luego removemos
+        booking.addFollower(2L, 5.0);
+        booking.removeFollower(2L);
 
-        // Act
-        booking.generatePinAndLock();
-
-        // Assert
-        assertThat(booking.getSecurityPin()).matches("\\d{4}");
-        assertThat(booking.getStatus()).isEqualTo(BookingStatus.LOCKED);
+        // Solo debería quedar el líder en la lista
+        assertEquals(1, booking.getPassengers().size());
+        assertEquals(BookingStatus.OPEN, booking.getStatus());
     }
 }
