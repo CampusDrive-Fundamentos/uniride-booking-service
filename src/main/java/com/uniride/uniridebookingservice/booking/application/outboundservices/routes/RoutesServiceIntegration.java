@@ -49,17 +49,6 @@ public class RoutesServiceIntegration {
         restTemplate.exchange(url, HttpMethod.DELETE, new HttpEntity<>(createHeaders(token)), Void.class);
     }
 
-    public Double getDistanceToWaypoint(Long routeId, Double lat, Double lng, String token) {
-        String url = routesUrl + "/" + routeId + "/distance?lat=" + lat + "&lng=" + lng;
-        try {
-            org.springframework.http.ResponseEntity<Double> response = restTemplate.exchange(
-                url, HttpMethod.GET, new HttpEntity<>(createHeaders(token)), Double.class);
-            return response.getBody() != null ? response.getBody() : 0.0;
-        } catch (Exception e) {
-            return 0.0; // Fallback en caso de error
-        }
-    }
-
     public java.util.List<Long> searchNearbyRouteIds(String campus, Double lat, Double lng, String token) {
         String url = routesUrl + "/search?campus=" + campus + "&lat=" + lat + "&lng=" + lng;
         org.springframework.http.ResponseEntity<java.util.List> response = restTemplate.exchange(
