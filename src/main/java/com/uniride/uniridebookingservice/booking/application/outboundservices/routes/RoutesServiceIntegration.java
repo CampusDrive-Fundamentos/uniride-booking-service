@@ -35,37 +35,42 @@ public class RoutesServiceIntegration {
         restTemplate.exchange(url, HttpMethod.DELETE, new HttpEntity<>(createHeaders(token)), Void.class);
     }
 
-    // NUEVO: Le avisa a Routes que añada una parada y recalcule el mapa
     public void addWaypoint(Long routeId, Double lat, Double lng, String address, String token) {
         String url = routesUrl + "/" + routeId + "/waypoints";
         Map<String, Object> body = new HashMap<>();
         body.put("lat", lat);
         body.put("lng", lng);
         body.put("address", address);
-
         restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(body, createHeaders(token)), Void.class);
     }
 
-    // NUEVO: Le avisa a Routes que quite la parada si el alumno cancela
     public void removeWaypoint(Long routeId, Double lat, Double lng, String token) {
         String url = routesUrl + "/" + routeId + "/waypoints?lat=" + lat + "&lng=" + lng;
         restTemplate.exchange(url, HttpMethod.DELETE, new HttpEntity<>(createHeaders(token)), Void.class);
     }
+    
+    public Double getDistanceToWaypoint(Long routeId, Double lat, Double lng, String token) {
+        String url = routesUrl + "/" + routeId + "/distance?lat=" + lat + "&lng=" + lng;
+        try {
+            org.springframework.http.ResponseEntity<Double> response = restTemplate.exchange(
+                url, HttpMethod.GET, new HttpEntity<>(createHeaders(token)), Double.class);
+            return response.getBody() != null ? response.getBody() : 0.0;
+        } catch (Exception e) {
+            return 0.0; // Fallback en caso de error
+        }
+    }
 
     public java.util.List<Long> searchNearbyRouteIds(String campus, Double lat, Double lng, String token) {
         String url = routesUrl + "/search?campus=" + campus + "&lat=" + lat + "&lng=" + lng;
-
         org.springframework.http.ResponseEntity<java.util.List> response = restTemplate.exchange(
-                url, HttpMethod.GET, new HttpEntity<>(createHeaders(token)), java.util.List.class);
-
+            url, HttpMethod.GET, new HttpEntity<>(createHeaders(token)), java.util.List.class);
         if (response.getBody() == null) return java.util.Collections.emptyList();
 
-        // Extraemos solo los IDs de las rutas devueltas por el JSON de Routes
         return response.getBody().stream()
-                .map(obj -> {
-                    java.util.Map<?, ?> map = (java.util.Map<?, ?>) obj;
-                    return Long.parseLong(map.get("id").toString());
-                })
-                .toList();
+            .map(obj -> {
+                java.util.Map<?, ?> map = (java.util.Map<?, ?>) obj;
+                return Long.parseLong(map.get("id").toString());
+            })
+            .toList();
     }
 }
