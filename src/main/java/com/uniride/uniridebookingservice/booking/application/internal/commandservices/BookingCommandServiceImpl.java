@@ -3,9 +3,7 @@ package com.uniride.uniridebookingservice.booking.application.internal.commandse
 import com.uniride.uniridebookingservice.booking.application.outboundservices.routes.RoutesServiceIntegration;
 import com.uniride.uniridebookingservice.booking.domain.model.aggregates.Booking;
 import com.uniride.uniridebookingservice.booking.domain.model.commands.*;
-import com.uniride.uniridebookingservice.booking.domain.model.entities.Passenger;
 import com.uniride.uniridebookingservice.booking.domain.model.valueobjects.BookingStatus;
-import com.uniride.uniridebookingservice.booking.domain.model.valueobjects.PaymentStatus;
 import com.uniride.uniridebookingservice.booking.domain.services.BookingCommandService;
 import com.uniride.uniridebookingservice.booking.infrastructure.persistence.jpa.repositories.BookingRepository;
 import org.springframework.stereotype.Service;
@@ -31,18 +29,11 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     @Override
     public Optional<Booking> handle(JoinBookingCommand command) {
         return bookingRepository.findById(command.bookingId()).map(booking -> {
-
-            // 1. OBTENEMOS LA DISTANCIA ANTES DE AÑADIR AL PASAJERO
-            Double exactDistance = routesIntegration.getDistanceToWaypoint(booking.getRouteId(), command.lat(), command.lng(), command.token());
-
-            // 2. AÑADIMOS AL SEGUIDOR (Asegúrate que tu método addFollower en Booking.java reciba y guarde esta distancia en la entidad Passenger)
-            if (booking.addFollower(command.studentId(), exactDistance)) {
+            if (booking.addFollower(command.studentId())) {
                 booking = bookingRepository.save(booking);
 
-                // 3. Llamamos a Routes para que añada la parada al mapa
                 routesIntegration.addWaypoint(booking.getRouteId(), command.lat(), command.lng(), command.address(), command.token());
 
-                // 4. Si se llenó (4 pasajeros), ocultamos el mapa
                 if (booking.getStatus() == BookingStatus.FULL) {
                     routesIntegration.updateVisibility(booking.getRouteId(), "HIDDEN", command.token());
                 }
@@ -56,17 +47,12 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     @Override
     public Optional<Booking> handle(LeaveBookingCommand command) {
         return bookingRepository.findById(command.bookingId()).map(booking -> {
-            boolean wasFull = booking.getStatus() == BookingStatus.FULL;
-
             booking.removeFollower(command.studentId());
             booking = bookingRepository.save(booking);
-
-            // 1. Llamamos a Routes para que quite la parada y achique el mapa
             routesIntegration.removeWaypoint(booking.getRouteId(), command.lat(), command.lng(), command.token());
 
-            // 2. Si estaba lleno y alguien se salió, el auto vuelve a ser visible en el radar
-            if (wasFull) {
-                routesIntegration.updateVisibility(booking.getRouteId(), "SEARCHABLE", command.token());
+            if (booking.getStatus() == BookingStatus.OPEN) {
+                routesIntegration.updateVisibility(booking.getRouteId(), "VISIBLE", command.token());
             }
             return booking;
         });
@@ -75,11 +61,8 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     @Override
     public Optional<Booking> handle(LockBookingCommand command) {
         return bookingRepository.findById(command.bookingId()).map(booking -> {
-            if (!booking.getLeaderId().equals(command.leaderId())) throw new RuntimeException("Solo el líder puede bloquear");
-
             booking.generatePinAndLock();
             routesIntegration.updateVisibility(booking.getRouteId(), "HIDDEN", command.token());
-
             return bookingRepository.save(booking);
         });
     }
@@ -87,12 +70,13 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     @Override
     public Optional<Booking> handle(UpdatePaymentCommand command) {
         return bookingRepository.findById(command.bookingId()).map(booking -> {
-            for (Passenger p : booking.getPassengers()) {
-                if (p.getStudentId().equals(command.passengerId())) {
-                    p.setPaymentStatus(PaymentStatus.PAID);
-                    p.setPaymentMethod(command.method());
-                }
-            }
+            booking.getPassengers().stream()
+                .filter(p -> p.getStudentId().equals(command.studentId()))
+                .findFirst()
+                .ifPresent(p -> {
+                    p.setPaymentStatus(command.paymentStatus());
+                    p.setPaymentMethod(command.paymentMethod());
+                });
             return bookingRepository.save(booking);
         });
     }
@@ -100,11 +84,8 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     @Override
     public void handle(CancelBookingCommand command) {
         bookingRepository.findById(command.bookingId()).ifPresent(booking -> {
-            if (!booking.getLeaderId().equals(command.leaderId())) throw new RuntimeException("Solo el líder puede cancelar");
-
-            booking.setStatus(BookingStatus.CANCELLED);
-            bookingRepository.save(booking);
             routesIntegration.deleteRoute(booking.getRouteId(), command.token());
+            bookingRepository.delete(booking);
         });
     }
 }
