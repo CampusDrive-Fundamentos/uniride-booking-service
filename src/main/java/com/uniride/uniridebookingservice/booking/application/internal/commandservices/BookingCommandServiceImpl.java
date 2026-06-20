@@ -4,6 +4,7 @@ import com.uniride.uniridebookingservice.booking.application.outboundservices.ro
 import com.uniride.uniridebookingservice.booking.domain.model.aggregates.Booking;
 import com.uniride.uniridebookingservice.booking.domain.model.commands.*;
 import com.uniride.uniridebookingservice.booking.domain.model.valueobjects.BookingStatus;
+import com.uniride.uniridebookingservice.booking.domain.model.valueobjects.PaymentStatus;
 import com.uniride.uniridebookingservice.booking.domain.services.BookingCommandService;
 import com.uniride.uniridebookingservice.booking.infrastructure.persistence.jpa.repositories.BookingRepository;
 import org.springframework.stereotype.Service;
@@ -71,11 +72,13 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     public Optional<Booking> handle(UpdatePaymentCommand command) {
         return bookingRepository.findById(command.bookingId()).map(booking -> {
             booking.getPassengers().stream()
-                .filter(p -> p.getStudentId().equals(command.studentId()))
+                // Usamos el passengerId() original
+                .filter(p -> p.getStudentId().equals(command.passengerId()))
                 .findFirst()
                 .ifPresent(p -> {
-                    p.setPaymentStatus(command.paymentStatus());
-                    p.setPaymentMethod(command.paymentMethod());
+                    // Usamos el method() original
+                    p.setPaymentMethod(command.method());
+                    p.setPaymentStatus(PaymentStatus.PAID);
                 });
             return bookingRepository.save(booking);
         });
