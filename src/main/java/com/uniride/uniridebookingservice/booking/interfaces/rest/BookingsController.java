@@ -7,7 +7,6 @@ import com.uniride.uniridebookingservice.booking.domain.model.queries.SearchNear
 import com.uniride.uniridebookingservice.booking.domain.services.BookingCommandService;
 import com.uniride.uniridebookingservice.booking.domain.services.BookingQueryService;
 import com.uniride.uniridebookingservice.booking.interfaces.rest.resources.BookingResource;
-import com.uniride.uniridebookingservice.booking.interfaces.rest.resources.PassengerResource;
 import com.uniride.uniridebookingservice.booking.interfaces.rest.resources.WaypointRequest;
 import com.uniride.uniridebookingservice.booking.interfaces.rest.transform.BookingResourceFromEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
@@ -68,33 +67,7 @@ public class BookingsController {
         return ResponseEntity.ok(bookings);
     }
 
-    @GetMapping("/{bookingId}/passengers")
-    @Operation(summary = "Obtiene la lista de pasajeros y su estado de pago (Usado por el Líder durante el viaje)")
-    public ResponseEntity<List<PassengerResource>> getBookingPassengers(@PathVariable Long bookingId) {
-        return bookingQueryService.handle(new GetBookingByIdQuery(bookingId))
-                .map(booking -> {
-                    var passengers = booking.getPassengers().stream()
-                            .map(p -> new PassengerResource(
-                                    p.getStudentId(),
-                                    p.getRole().name(),
-                                    p.getPaymentStatus().name(),
-                                    p.getPaymentMethod()))
-                            .toList();
-                    return ResponseEntity.ok(passengers);
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
 
-    @GetMapping("/{bookingId}/validate-pin")
-    @Operation(summary = "Valida si el PIN del taxista es correcto (Usado por Trips para iniciar el viaje)")
-    public ResponseEntity<Boolean> validatePin(@PathVariable Long bookingId, @RequestParam String pin) {
-        return bookingQueryService.handle(new GetBookingByIdQuery(bookingId))
-                .map(booking -> {
-                    boolean isValid = booking.getSecurityPin() != null && booking.getSecurityPin().equals(pin);
-                    return ResponseEntity.ok(isValid);
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
 
     @PostMapping
     @Operation(summary = "Líder crea grupo asociado a una ruta")
