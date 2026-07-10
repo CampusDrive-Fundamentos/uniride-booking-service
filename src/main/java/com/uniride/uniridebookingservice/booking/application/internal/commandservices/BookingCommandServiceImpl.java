@@ -48,6 +48,11 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     @Override
     public Optional<Booking> handle(LeaveBookingCommand command) {
         return bookingRepository.findById(command.bookingId()).map(booking -> {
+            // BLOQUEO DE SEGURIDAD: El líder nunca debe llamar a "leave".
+            if (booking.getLeaderId().equals(command.studentId())) {
+                throw new IllegalArgumentException("El líder no puede salir del grupo. Debe usar la opción de Cancelar Grupo.");
+            }
+
             booking.removeFollower(command.studentId());
             booking = bookingRepository.save(booking);
             routesIntegration.removeWaypoint(booking.getRouteId(), command.lat(), command.lng(), command.token());
@@ -72,11 +77,9 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     public Optional<Booking> handle(UpdatePaymentCommand command) {
         return bookingRepository.findById(command.bookingId()).map(booking -> {
             booking.getPassengers().stream()
-                // Usamos el passengerId() original
                 .filter(p -> p.getStudentId().equals(command.passengerId()))
                 .findFirst()
                 .ifPresent(p -> {
-                    // Usamos el method() original
                     p.setPaymentMethod(command.method());
                     p.setPaymentStatus(PaymentStatus.PAID);
                 });
@@ -87,6 +90,7 @@ public class BookingCommandServiceImpl implements BookingCommandService {
     @Override
     public void handle(CancelBookingCommand command) {
         bookingRepository.findById(command.bookingId()).ifPresent(booking -> {
+            // El líder borra tanto el grupo como la ruta de manera definitiva
             routesIntegration.deleteRoute(booking.getRouteId(), command.token());
             bookingRepository.delete(booking);
         });
